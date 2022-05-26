@@ -3,7 +3,9 @@ package controller
 import (
 	"fmt"
 	"ginEssential/common"
+	"ginEssential/dto"
 	"ginEssential/model"
+	"ginEssential/response"
 	"ginEssential/util"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -14,20 +16,22 @@ import (
 func Register(c *gin.Context) {
 	db := common.GetDB()
 
+	var requestUser = model.User{}
+	c.BindJSON(&requestUser)
 	// get params
-	name := c.PostForm("name")
-	telephone := c.PostForm("telephone")
-	password := c.PostForm("password")
+	name := requestUser.Name
+	telephone := requestUser.PhoneNumber
+	password := requestUser.Password
 
 	//fmt.Println(name, telephone, password)
 
 	// validate data
 	if len(telephone) != 11 {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"code": 422, "msg": "phone number must be 11"})
+		response.Response(c, http.StatusUnprocessableEntity, 422, nil, "phone number must be 11")
 		return
 	}
 	if len(password) < 6 {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "password must be more than 16"})
+		response.Response(c, http.StatusUnprocessableEntity, 422, nil, "password must be more than 16")
 		return
 	}
 	// if name is not passed,generate a random string
@@ -37,7 +41,7 @@ func Register(c *gin.Context) {
 
 	// judge if phone number exist
 	if isPhoneNumberExist(db, telephone) {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "phone number already exists"})
+		response.Response(c, http.StatusUnprocessableEntity, 422, nil, "phone number already exists")
 		return
 	}
 	// create user account
@@ -48,9 +52,7 @@ func Register(c *gin.Context) {
 	}
 	db.Create(&newUser)
 	//return results
-	c.JSON(200, gin.H{
-		"message": "register successfully",
-	})
+	response.Success(c, nil, "register successfully")
 }
 
 func Login(ctx *gin.Context) {
@@ -63,30 +65,29 @@ func Login(ctx *gin.Context) {
 	db.Where("phone_number=?", phoneNumber).First(&user)
 
 	if user.ID == 0 {
-		ctx.JSON(http.StatusNotFound, "account doesn't exist")
+		response.Response(ctx, http.StatusNotFound, 404, nil, "account doesn't exist")
 		return
 	}
 	if !util.ValidPassword(password, user.Password) {
 		//fmt.Println(password, user.Password)
-		ctx.JSON(http.StatusBadRequest, "account or password is wrong")
+		response.Response(ctx, http.StatusBadRequest, 400, nil, "account or password is wrong")
 		return
 	}
 
 	token, err := common.ReleaseToken(user)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "generate token failed"})
+		response.Response(ctx, http.StatusInternalServerError, 500, nil, "generate token failed")
 		log.Printf("token generate error")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "login successfully",
-		"data": gin.H{"token": token}})
+	response.Success(ctx, gin.H{"token": token}, "login successfully")
 }
 
 func Info(ctx *gin.Context) {
 	user, _ := ctx.Get("user")
 
-	ctx.JSON(http.StatusOK, gin.H{"data": gin.H{"user": user}})
+	response.Success(ctx, gin.H{"user": dto.ToUserDto(user.(model.User))}, "")
 }
 
 func isPhoneNumberExist(db *gorm.DB, phoneNumber string) bool {

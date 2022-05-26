@@ -1,0 +1,11 @@
+Server:
+  Port: 9090
+
+DBSource:
+  DriverName : mysql
+  Host : localhost
+  Port : 3306
+  Database : gin_essential
+  Username : root
+  Password : 123
+  Charset : utf8

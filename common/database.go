@@ -9,14 +9,14 @@ import (
 
 var DB *gorm.DB
 
-func init() {
-	driverName := "mysql"
-	host := "localhost"
-	port := "3306"
-	database := "gin_essential"
-	username := "root"
-	password := "123"
-	charset := "utf8"
+func InitDB() {
+	driverName := DBSetting.DriverName
+	host := DBSetting.Host
+	port := DBSetting.Port
+	database := DBSetting.Database
+	username := DBSetting.Username
+	password := DBSetting.Password
+	charset := DBSetting.Charset
 	args := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=true",
 		username, password, host, port, database, charset)
 
